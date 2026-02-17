@@ -1,0 +1,126 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Sushi Order</ion-title>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <div style="display: flex; gap: 10px; padding: 10px;">
+      <ion-select 
+        fill="outline" 
+        placeholder="Tavolo" 
+        interface="popover"
+        style="max-width: 120px;"
+        [ngModel]="codiceTavolo()"
+        (ionChange)="codiceTavolo.set($event.detail.value)">
+        <ion-select-option *ngFor="let t of tavoli()" [value]="t.codice_tavolo">
+          {{ t.codice_tavolo }}
+        </ion-select-option>
+      </ion-select>
+
+      <ion-input 
+        placeholder="Il tuo nome" 
+        fill="outline"
+        [ngModel]="nomeCliente()"
+        (ngModelChange)="nomeCliente.set($event)">
+      </ion-input>
+    </div>
+  </ion-toolbar>
+
+  <ion-toolbar>
+    <ion-segment [value]="categoriaSelezionata()" (ionChange)="cambiaCategoria($event)" scrollable>
+      @for (cat of categorie(); track cat) {
+        <ion-segment-button [value]="cat">
+          <ion-label>{{ cat }}</ion-label>
+        </ion-segment-button>
+      }
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  
+  <ion-list>
+    @for (prod of prodottiFiltrati(); track prod.id) {
+      <ion-item lines="full" class="product-item">
+        <ion-thumbnail slot="start">
+          <img [src]="prod.immagine_url" style="border-radius: 8px; object-fit: cover;" />
+        </ion-thumbnail>
+        
+        <ion-label class="ion-text-wrap">
+          <h2>{{ prod.nome }}</h2>
+          <p>€ {{ prod.prezzo | number:'1.2-2' }}</p>
+        </ion-label>
+
+        <div slot="end" class="qty-controls" style="display: flex; align-items: center; gap: 5px;">
+          
+          @if (getQuantita(prod.id) > 0) {
+            <ion-button size="default" fill="outline" color="medium" (click)="cart.rimuoviProdotto(prod.id)">
+              <ion-icon slot="icon-only" name="remove-outline"></ion-icon>
+            </ion-button>
+            
+            <span style="font-weight: bold; font-size: 1.2rem; min-width: 25px; text-align: center;">
+              {{ getQuantita(prod.id) }}
+            </span>
+          }
+
+          <ion-button size="default" fill="solid" color="primary" (click)="cart.aggiungiProdotto(prod)">
+            <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </ion-item>
+    }
+  </ion-list>
+</ion-content>
+
+<ion-footer *ngIf="cart.pezziTotali() > 0">
+  <ion-toolbar color="success" (click)="setOpen(true)">
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 16px; cursor: pointer;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <ion-icon name="cart-outline" size="large"></ion-icon>
+        <div>
+          <h3 style="margin: 0; font-weight: bold;">Vedi Carrello ({{ cart.pezziTotali() }})</h3>
+          <small>Totale: € {{ cart.totale() | number:'1.2-2' }}</small>
+        </div>
+      </div>
+      <ion-icon name="chevron-up-outline"></ion-icon>
+    </div>
+  </ion-toolbar>
+</ion-footer>
+
+<ion-modal [isOpen]="isModalOpen()" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.75]" (didDismiss)="setOpen(false)">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Riepilogo Ordine</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="setOpen(false)">Chiudi</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    
+    <ion-content class="ion-padding">
+      <ion-list>
+        <ion-item *ngFor="let item of cart.items()">
+          <ion-label>
+            <h3>{{ item.nome }}</h3>
+            <p>€ {{ item.prezzo }} x {{ item.quantita }}</p>
+          </ion-label>
+          
+          <div slot="end" style="display: flex; align-items: center;">
+            <ion-button fill="clear" color="danger" (click)="cart.rimuoviProdotto(item.id)">
+              <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      </ion-list>
+
+      <div style="margin-top: 30px; text-align: center;">
+        <h1>Totale: € {{ cart.totale() | number:'1.2-2' }}</h1>
+        <br>
+        <ion-button expand="block" color="success" size="large" (click)="confermaOrdine()">
+          INVIA ORDINE
+        </ion-button>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

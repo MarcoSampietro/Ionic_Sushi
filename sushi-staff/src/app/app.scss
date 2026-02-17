@@ -1,0 +1,120 @@
+.container {
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f4f4f9;
+  min-height: 100vh;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+
+  h1 { margin: 0; color: #333; }
+  
+  button {
+    padding: 10px 20px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.order-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+  border-left: 6px solid #ccc; /* Default border */
+  display: flex;
+  flex-direction: column;
+
+  /* Stati dinamici basati sulla classe CSS nel template */
+  &.Inviato { border-left-color: #ff4757; }
+  &.In.preparazione { border-left-color: #ffa502; background-color: #fffaf0; }
+  &.Consegnato { border-left-color: #2ed573; opacity: 0.6; }
+
+  .card-header {
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .table-badge {
+      background: #333;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .customer-name { font-weight: 600; color: #555; }
+    .time { font-size: 0.8rem; color: #999; }
+  }
+
+  .card-body {
+    padding: 15px;
+    flex-grow: 1;
+    
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      
+      li {
+        padding: 5px 0;
+        border-bottom: 1px dashed #eee;
+        font-size: 1.1rem;
+        
+        strong { color: #e84118; margin-right: 5px; }
+      }
+    }
+  }
+
+  .card-footer {
+    padding: 15px;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .btn-prep {
+      background-color: #ffa502;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .btn-done {
+      background-color: #2ed573;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  }
+}
+
+.no-orders {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 1.5rem;
+  color: #888;
+  margin-top: 50px;
+}

@@ -1,0 +1,51 @@
+<div class="container">
+  <header>
+    <h1>👨‍🍳 Kitchen Monitor</h1>
+    <button (click)="caricaOrdini()">Aggiorna Ora ⟳</button>
+  </header>
+
+  <div class="grid-container">
+    
+    <div *ngIf="ordini().length === 0" class="no-orders">
+      <p>Nessun ordine attivo. La cucina riposa! 😴</p>
+    </div>
+
+    <div *ngFor="let ordine of ordini()" class="order-card" [ngClass]="ordine.stato">
+      
+      <div class="card-header">
+        <span class="table-badge">{{ ordine.codice_tavolo }}</span>
+        <span class="customer-name">{{ ordine.nome_cliente }}</span>
+        <span class="time">{{ ordine.data_creazione | date:'HH:mm' }}</span>
+      </div>
+
+      <div class="card-body">
+        <ul>
+          <li *ngFor="let item of ordine.prodotti">
+            <strong>{{ item.quantita }}x</strong> {{ item.nome }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="card-footer">
+        <div class="status-label">Stato: <strong>{{ ordine.stato }}</strong></div>
+        
+        <div class="actions">
+          <button *ngIf="ordine.stato === 'Inviato'" 
+                  class="btn-prep" 
+                  (click)="cambiaStato(ordine, 'In preparazione')">
+            👨‍🍳 Inizia
+          </button>
+
+          <button *ngIf="ordine.stato === 'In preparazione'" 
+                  class="btn-done" 
+                  (click)="cambiaStato(ordine, 'Consegnato')">
+            ✅ Consegna
+          </button>
+          
+          <span *ngIf="ordine.stato === 'Consegnato'">Archiviato</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

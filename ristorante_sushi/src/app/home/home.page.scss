@@ -1,0 +1,22 @@
+.product-item {
+  margin-bottom: 10px;
+  --padding-start: 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qty-label {
+  font-weight: bold;
+  font-size: 1.1rem;
+  min-width: 20px;
+  text-align: center;
+}
+
+ion-segment-button {
+  min-width: 100px;
+}

@@ -1,0 +1,7 @@
+{
+  "name": "ristorante_sushi",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
