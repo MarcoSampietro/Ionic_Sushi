@@ -75,10 +75,36 @@ def update_order_status():
     risultato = db.update_order_status(data['id_ordine'], data['stato'])
     return jsonify(risultato)
 
+@app.route('/api/staff/order/item/status', methods=['POST'])
+def update_item_status():
+    """Aggiorna lo stato di un singolo piatto."""
+    data = request.get_json()
+    if not data or 'id_ordine' not in data or 'id_prodotto' not in data or 'stato' not in data:
+        return jsonify({"error": "Dati mancanti"}), 400
+
+    risultato = db.update_item_status(data['id_ordine'], data['id_prodotto'], data['stato'])
+    return jsonify(risultato)
+
 @app.route('/api/tables', methods=['GET'])
 def get_tables():
     tables = db.get_tables()
     return jsonify(tables)
+
+@app.route('/api/categories', methods=['GET'])
+def get_categories():
+    return jsonify(db.get_categories())
+
+@app.route('/api/staff/table', methods=['POST'])
+def add_table():
+    data = request.get_json()
+    if not data or 'codice_tavolo' not in data:
+        return jsonify({"error": "Dati mancanti"}), 400
+    return jsonify(db.add_table(data['codice_tavolo']))
+
+@app.route('/api/staff/product', methods=['POST'])
+def add_product():
+    data = request.get_json()
+    return jsonify(db.add_product(data['nome'], data['prezzo'], data['immagine_url'], data['id_categoria']))
 
 if __name__ == '__main__':
     # Avvia il server sulla porta 5000

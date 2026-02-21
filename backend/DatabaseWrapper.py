@@ -147,33 +147,54 @@ class DatabaseWrapper:
     #  METODI PER LO STAFF
     # ==========================================
 
+# --- METODI PER LO STAFF ---
     def get_all_orders(self):
-        """Recupera tutti gli ordini per la dashboard dello staff"""
+        """Recupera solo gli ordini che NON sono stati completamente consegnati"""
         connection = self.connect()
         try:
             with connection.cursor() as cursor:
-                # Recupera info generali ordine + codice tavolo
                 sql = """
-                SELECT o.id, o.nome_cliente, o.stato, o.data_creazione, t.codice_tavolo
+                SELECT o.id, o.nome_cliente, o.data_creazione, t.codice_tavolo
                 FROM ordini o
                 JOIN tavoli t ON o.id_tavolo = t.id
                 ORDER BY o.data_creazione DESC
                 """
                 cursor.execute(sql)
                 orders = cursor.fetchall()
-
-                # Per ogni ordine, recuperiamo i piatti (opzionale, ma utile per lo staff)
+                
+                ordini_attivi = []
                 for order in orders:
                     sql_items = """
-                    SELECT p.nome, d.quantita 
+                    SELECT p.id as id_prodotto, p.nome, d.quantita, d.stato 
                     FROM dettaglio_ordini d
                     JOIN prodotti p ON d.id_prodotto = p.id
                     WHERE d.id_ordine = %s
                     """
                     cursor.execute(sql_items, (order['id'],))
-                    order['prodotti'] = cursor.fetchall()
-
-                return orders
+                    items = cursor.fetchall()
+                    
+                    # Controlla se TUTTI i piatti sono 'Consegnato'
+                    tutti_consegnati = all(piatto['stato'] == 'Consegnato' for piatto in items)
+                    
+                    # Se ci sono piatti e NON sono tutti consegnati, mostra l'ordine
+                    if items and not tutti_consegnati:
+                        order['prodotti'] = items
+                        ordini_attivi.append(order)
+                        
+                return ordini_attivi
+        finally:
+            connection.close()
+    def update_item_status(self, id_ordine, id_prodotto, nuovo_stato):
+        """Aggiorna lo stato di un singolo piatto dentro un ordine"""
+        connection = self.connect()
+        try:
+            with connection.cursor() as cursor:
+                sql = "UPDATE dettaglio_ordini SET stato = %s WHERE id_ordine = %s AND id_prodotto = %s"
+                cursor.execute(sql, (nuovo_stato, id_ordine, id_prodotto))
+                connection.commit()
+                return {"success": True}
+        except Exception as e:
+            return {"error": str(e)}
         finally:
             connection.close()
 
@@ -234,5 +255,41 @@ class DatabaseWrapper:
                     order['prodotti'] = cursor.fetchall()
 
                 return orders
+        finally:
+            connection.close()
+    def get_categories(self):
+        """Recupera le categorie per la tendina di aggiunta prodotto"""
+        connection = self.connect()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT id, nome FROM categorie")
+                return cursor.fetchall()
+        finally:
+            connection.close()
+
+    def add_table(self, codice_tavolo):
+        """Aggiunge un nuovo tavolo"""
+        connection = self.connect()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("INSERT INTO tavoli (codice_tavolo) VALUES (%s)", (codice_tavolo,))
+                connection.commit()
+                return {"success": True}
+        except Exception as e:
+            return {"error": str(e)}
+        finally:
+            connection.close()
+
+    def add_product(self, nome, prezzo, immagine_url, id_categoria):
+        """Aggiunge un nuovo prodotto al menù"""
+        connection = self.connect()
+        try:
+            with connection.cursor() as cursor:
+                sql = "INSERT INTO prodotti (nome, prezzo, immagine_url, id_categoria) VALUES (%s, %s, %s, %s)"
+                cursor.execute(sql, (nome, prezzo, immagine_url, id_categoria))
+                connection.commit()
+                return {"success": True}
+        except Exception as e:
+            return {"error": str(e)}
         finally:
             connection.close()

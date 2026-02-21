@@ -8,17 +8,28 @@ import { Ordine } from './models';
 })
 export class ApiService {
   private http = inject(HttpClient);
-  private baseUrl = 'https://verbose-carnival-v6pjp475j7gp2x9pv-5000.app.github.dev/api/staff'; // Nota il path diverso
+  private baseUrl = 'https://obscure-pancake-7vx56wjv46pfx46r-5000.app.github.dev/api/staff';
 
-  // Recupera tutti gli ordini attivi
   getOrders(): Observable<Ordine[]> {
     return this.http.get<Ordine[]>(`${this.baseUrl}/orders`);
   }
 
-  // Aggiorna lo stato (es. da "Inviato" a "Consegnato")
-  updateStatus(idOrdine: number, nuovoStato: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/order/status`, {
+  getCategories(): Observable<any[]> {
+    return this.http.get<any[]>('https://obscure-pancake-7vx56wjv46pfx46r-5000.app.github.dev/api/categories');
+  }
+
+  addTable(codiceTavolo: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/table`, { codice_tavolo: codiceTavolo });
+  }
+
+  addProduct(prodotto: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/product`, prodotto);
+  }
+  // Nuova firma: richiede anche l'id_prodotto
+  updateItemStatus(idOrdine: number, idProdotto: number, nuovoStato: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/order/item/status`, {
       id_ordine: idOrdine,
+      id_prodotto: idProdotto,
       stato: nuovoStato
     });
   }

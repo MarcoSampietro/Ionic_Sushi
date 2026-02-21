@@ -1,51 +1,88 @@
 <div class="container">
   <header>
-    <h1>👨‍🍳 Kitchen Monitor</h1>
-    <button (click)="caricaOrdini()">Aggiorna Ora ⟳</button>
-  </header>
-
-  <div class="grid-container">
+    <h1>👨‍🍳 Sushi Gestione</h1>
     
-    <div *ngIf="ordini().length === 0" class="no-orders">
-      <p>Nessun ordine attivo. La cucina riposa! 😴</p>
+    <div class="nav-tabs">
+      <button [class.active]="currentTab() === 'ordini'" (click)="currentTab.set('ordini')">📝 Ordini</button>
+      <button [class.active]="currentTab() === 'tavoli'" (click)="currentTab.set('tavoli')">🪑 Tavoli</button>
+      <button [class.active]="currentTab() === 'menu'" (click)="currentTab.set('menu')">🍣 Menu</button>
     </div>
 
-    <div *ngFor="let ordine of ordini()" class="order-card" [ngClass]="ordine.stato">
-      
+    <button *ngIf="currentTab() === 'ordini'" class="refresh-btn" (click)="caricaOrdini()">Aggiorna Ora ⟳</button>
+  </header>
+
+  <div *ngIf="currentTab() === 'ordini'" class="grid-container">
+    <div *ngIf="ordini().length === 0" class="no-orders">
+      <p>Nessun ordine attivo da preparare! 😴</p>
+    </div>
+
+    <div *ngFor="let ordine of ordini()" class="order-card" [class.completed]="isOrdineCompletato(ordine)">
       <div class="card-header">
         <span class="table-badge">{{ ordine.codice_tavolo }}</span>
         <span class="customer-name">{{ ordine.nome_cliente }}</span>
         <span class="time">{{ ordine.data_creazione | date:'HH:mm' }}</span>
       </div>
-
+      
       <div class="card-body">
         <ul>
-          <li *ngFor="let item of ordine.prodotti">
-            <strong>{{ item.quantita }}x</strong> {{ item.nome }}
+          <li *ngFor="let piatto of ordine.prodotti">
+            
+            <div class="item-info">
+              <strong>{{ piatto.quantita }}x</strong> 
+              <span [class.strike]="piatto.stato === 'Consegnato'">{{ piatto.nome }}</span>
+            </div>
+            
+            <div class="item-actions">
+              <span class="badge" [ngClass]="piatto.stato ? piatto.stato.replace(' ', '-') : 'Inviato'">
+                {{ piatto.stato || 'Inviato' }}
+              </span>
+              
+              <button *ngIf="piatto.stato === 'Inviato' || !piatto.stato" class="btn-action prep" (click)="avanzaStato(ordine, piatto)">Prepara</button>
+              <button *ngIf="piatto.stato === 'In preparazione'" class="btn-action done" (click)="avanzaStato(ordine, piatto)">Pronto</button>
+            </div>
+
           </li>
         </ul>
       </div>
+    </div>
+  </div>
 
-      <div class="card-footer">
-        <div class="status-label">Stato: <strong>{{ ordine.stato }}</strong></div>
-        
-        <div class="actions">
-          <button *ngIf="ordine.stato === 'Inviato'" 
-                  class="btn-prep" 
-                  (click)="cambiaStato(ordine, 'In preparazione')">
-            👨‍🍳 Inizia
-          </button>
+  <div *ngIf="currentTab() === 'tavoli'" class="form-section">
+    <h2>Aggiungi Nuovo Tavolo</h2>
+    <div class="form-group">
+      <label>Codice Tavolo (es. T5, Esterno-1)</label>
+      <input type="text" [(ngModel)]="nuovoTavolo" placeholder="Inserisci codice">
+    </div>
+    <button class="btn-save" (click)="salvaTavolo()">Salva Tavolo</button>
+  </div>
 
-          <button *ngIf="ordine.stato === 'In preparazione'" 
-                  class="btn-done" 
-                  (click)="cambiaStato(ordine, 'Consegnato')">
-            ✅ Consegna
-          </button>
-          
-          <span *ngIf="ordine.stato === 'Consegnato'">Archiviato</span>
-        </div>
-      </div>
+  <div *ngIf="currentTab() === 'menu'" class="form-section">
+    <h2>Aggiungi Nuovo Prodotto</h2>
+    
+    <div class="form-group">
+      <label>Nome Piatto</label>
+      <input type="text" [(ngModel)]="nuovoProdotto.nome" placeholder="es. Sashimi Salmone">
     </div>
 
+    <div class="form-group">
+      <label>Prezzo (€)</label>
+      <input type="number" [(ngModel)]="nuovoProdotto.prezzo" placeholder="es. 12.50">
+    </div>
+
+    <div class="form-group">
+      <label>Categoria</label>
+      <select [(ngModel)]="nuovoProdotto.id_categoria">
+        <option [ngValue]="null">Seleziona...</option>
+        <option *ngFor="let cat of categorie()" [value]="cat.id">{{ cat.nome }}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>URL Immagine (Link)</label>
+      <input type="text" [(ngModel)]="nuovoProdotto.immagine_url" placeholder="https://...">
+    </div>
+
+    <button class="btn-save" (click)="salvaProdotto()">Salva Prodotto</button>
   </div>
+
 </div>

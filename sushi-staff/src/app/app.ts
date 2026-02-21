@@ -1,66 +1,89 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ApiService } from './api';
-import { Ordine } from './models';
+import { Ordine, ProdottoOrdine } from './models';
 import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './app.html',
-  styleUrls: ['./app.scss']
+  imports: [CommonModule, FormsModule],
+  templateUrl: './app.html', // o './app.component.html' a seconda del tuo file
+  styleUrls: ['./app.scss']  // o './app.component.scss'
 })
 export class App implements OnInit, OnDestroy {
   api = inject(ApiService);
   
-  // Usiamo i signals per la lista ordini
+  // Stato e Navigazione
+  currentTab = signal<'ordini' | 'tavoli' | 'menu'>('ordini');
   ordini = signal<Ordine[]>([]);
-  
-  // Per gestire l'auto-refresh
+  categorie = signal<any[]>([]);
   refreshSubscription!: Subscription;
+
+  // Dati dei Form
+  nuovoTavolo = '';
+  nuovoProdotto = { nome: '', prezzo: 0, immagine_url: '', id_categoria: null as number | null };
 
   ngOnInit() {
     this.caricaOrdini();
-
-    // Aggiorna automaticamente ogni 10 secondi (polling)
+    this.api.getCategories().subscribe(res => this.categorie.set(res));
+    
+    // Auto-aggiornamento ogni 10 secondi solo se siamo nella scheda ordini
     this.refreshSubscription = interval(10000).subscribe(() => {
-      this.caricaOrdini();
+      if (this.currentTab() === 'ordini') this.caricaOrdini();
     });
   }
 
   ngOnDestroy() {
-    // Pulisce l'intervallo quando si chiude la pagina
-    if (this.refreshSubscription) {
-      this.refreshSubscription.unsubscribe();
-    }
+    if (this.refreshSubscription) this.refreshSubscription.unsubscribe();
   }
+
+  // --- GESTIONE ORDINI ---
 
   caricaOrdini() {
     this.api.getOrders().subscribe({
-      next: (data) => {
-        this.ordini.set(data);
-      },
-      error: (err) => console.error('Errore API Staff:', err)
+      next: (data) => this.ordini.set(data),
+      error: (err) => console.error('Errore API:', err)
     });
   }
 
-  cambiaStato(ordine: Ordine, nuovoStato: string) {
-    this.api.updateStatus(ordine.id, nuovoStato).subscribe(() => {
-      // Aggiorna la UI localmente subito per reattività
-      this.ordini.update(list => 
-        list.map(o => o.id === ordine.id ? { ...o, stato: nuovoStato } : o)
-      );
+  avanzaStato(ordine: Ordine, piatto: ProdottoOrdine) {
+    let nuovoStato = piatto.stato === 'Inviato' ? 'In preparazione' : 'Consegnato';
+    
+    this.api.updateItemStatus(ordine.id, piatto.id_prodotto, nuovoStato).subscribe(() => {
+      // Ricarica la lista dal server per aggiornare lo schermo e nascondere gli ordini finiti
+      this.caricaOrdini();
     });
   }
 
-  // Helper per calcolare il colore della card in base allo stato
-  getClassByStatus(stato: string): string {
-    switch(stato) {
-      case 'Inviato': return 'border-red-500 bg-red-50';
-      case 'In preparazione': return 'border-yellow-500 bg-yellow-50';
-      case 'Consegnato': return 'border-green-500 bg-green-50 opacity-60';
-      default: return 'border-gray-200';
+  // FUNZIONE MANCANTE AGGIUNTA QUI
+  isOrdineCompletato(ordine: Ordine): boolean {
+    if (!ordine.prodotti || ordine.prodotti.length === 0) return false;
+    return ordine.prodotti.every(p => p.stato === 'Consegnato');
+  }
+
+  // --- GESTIONE TAVOLI E MENU ---
+
+  salvaTavolo() {
+    if (!this.nuovoTavolo) return alert("Inserisci un codice tavolo");
+    this.api.addTable(this.nuovoTavolo).subscribe(res => {
+      if (res.success) {
+        alert("Tavolo aggiunto con successo!");
+        this.nuovoTavolo = '';
+      } else alert("Errore: " + res.error);
+    });
+  }
+
+  salvaProdotto() {
+    if (!this.nuovoProdotto.nome || !this.nuovoProdotto.id_categoria) {
+      return alert("Compila i campi obbligatori (Nome e Categoria)");
     }
+    this.api.addProduct(this.nuovoProdotto).subscribe(res => {
+      if (res.success) {
+        alert("Prodotto aggiunto al menù!");
+        this.nuovoProdotto = { nome: '', prezzo: 0, immagine_url: '', id_categoria: null };
+      } else alert("Errore: " + res.error);
+    });
   }
 }
