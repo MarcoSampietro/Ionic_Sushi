@@ -15,3 +15,10 @@ export interface OrdineRequest {
 export interface CarrelloItem extends Prodotto {
   quantita: number;
 }
+
+export interface OrdineTavolo {
+  id: number;
+  nome_cliente: string;
+  data_creazione: string;
+  prodotti: { nome: string; quantita: number; stato: string }[];
+}

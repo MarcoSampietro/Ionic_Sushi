@@ -8,7 +8,7 @@ import { Prodotto, OrdineRequest } from '../interfaces/models';
 })
 export class ApiService {
   private http = inject(HttpClient);
-  private baseUrl = 'https://verbose-carnival-v6pjp475j7gp2x9pv-5000.app.github.dev/api'; // Indirizzo del tuo Flask
+  private baseUrl = 'https://obscure-pancake-7vx56wjv46pfx46r-5000.app.github.dev/api'; // Indirizzo del tuo Flask
 
   getMenu(): Observable<Prodotto[]> {
     return this.http.get<Prodotto[]>(`${this.baseUrl}/menu`);
@@ -20,5 +20,8 @@ export class ApiService {
   
   getTables(): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/tables`);
+  }
+  getOrdiniTavolo(codiceTavolo: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/table/${codiceTavolo}/orders`);
   }
 }

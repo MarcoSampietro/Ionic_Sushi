@@ -41,6 +41,12 @@ def create_order():
     
     return jsonify(risultato)
 
+@app.route('/api/table/<codice_tavolo>/orders', methods=['GET'])
+def get_table_orders(codice_tavolo):
+    """Restituisce la cronologia degli ordini per un tavolo"""
+    orders = db.get_table_orders(codice_tavolo)
+    return jsonify(orders)
+
 # ==========================================
 #  API STAFF (Angular Dashboard)
 # ==========================================

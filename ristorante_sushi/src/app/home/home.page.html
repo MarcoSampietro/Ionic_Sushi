@@ -1,37 +1,29 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
-    <ion-title>Sushi Order</ion-title>
+    <ion-title>Sushi Order 🍣</ion-title>
   </ion-toolbar>
 
   <ion-toolbar>
     <div style="display: flex; gap: 10px; padding: 10px;">
-      <ion-select 
-        fill="outline" 
-        placeholder="Tavolo" 
-        interface="popover"
-        style="max-width: 120px;"
-        [ngModel]="codiceTavolo()"
-        (ionChange)="codiceTavolo.set($event.detail.value)">
-        <ion-select-option *ngFor="let t of tavoli()" [value]="t.codice_tavolo">
-          {{ t.codice_tavolo }}
-        </ion-select-option>
+      <ion-select fill="outline" placeholder="Tavolo" interface="popover" style="max-width: 120px;"
+        [ngModel]="codiceTavolo()" (ionChange)="codiceTavolo.set($event.detail.value); caricaCronologia()">
+        <ion-select-option *ngFor="let t of tavoli()" [value]="t.codice_tavolo">{{ t.codice_tavolo }}</ion-select-option>
       </ion-select>
-
-      <ion-input 
-        placeholder="Il tuo nome" 
-        fill="outline"
-        [ngModel]="nomeCliente()"
-        (ngModelChange)="nomeCliente.set($event)">
-      </ion-input>
+      <ion-input placeholder="Il tuo nome" fill="outline" [ngModel]="nomeCliente()" (ngModelChange)="nomeCliente.set($event)"></ion-input>
     </div>
   </ion-toolbar>
 
   <ion-toolbar>
+    <ion-segment [value]="vistaAttuale()" (ionChange)="cambiaVista($event)">
+      <ion-segment-button value="menu"><ion-label>Menù</ion-label></ion-segment-button>
+      <ion-segment-button value="cronologia"><ion-label>Ordini Effettuati</ion-label></ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+
+  <ion-toolbar *ngIf="vistaAttuale() === 'menu'">
     <ion-segment [value]="categoriaSelezionata()" (ionChange)="cambiaCategoria($event)" scrollable>
       @for (cat of categorie(); track cat) {
-        <ion-segment-button [value]="cat">
-          <ion-label>{{ cat }}</ion-label>
-        </ion-segment-button>
+        <ion-segment-button [value]="cat"><ion-label>{{ cat }}</ion-label></ion-segment-button>
       }
     </ion-segment>
   </ion-toolbar>
@@ -39,40 +31,77 @@
 
 <ion-content [fullscreen]="true" class="ion-padding">
   
-  <ion-list>
-    @for (prod of prodottiFiltrati(); track prod.id) {
-      <ion-item lines="full" class="product-item">
-        <ion-thumbnail slot="start">
-          <img [src]="prod.immagine_url" style="border-radius: 8px; object-fit: cover;" />
-        </ion-thumbnail>
-        
-        <ion-label class="ion-text-wrap">
-          <h2>{{ prod.nome }}</h2>
-          <p>€ {{ prod.prezzo | number:'1.2-2' }}</p>
-        </ion-label>
-
-        <div slot="end" class="qty-controls" style="display: flex; align-items: center; gap: 5px;">
-          
-          @if (getQuantita(prod.id) > 0) {
-            <ion-button size="default" fill="outline" color="medium" (click)="cart.rimuoviProdotto(prod.id)">
-              <ion-icon slot="icon-only" name="remove-outline"></ion-icon>
+  @if (vistaAttuale() === 'menu') {
+    <ion-list>
+      @for (prod of prodottiFiltrati(); track prod.id) {
+        <ion-item lines="full" class="product-item">
+          <ion-thumbnail slot="start">
+            <img [src]="prod.immagine_url" style="border-radius: 8px; object-fit: cover;" />
+          </ion-thumbnail>
+          <ion-label class="ion-text-wrap">
+            <h2>{{ prod.nome }}</h2>
+            <p>€ {{ prod.prezzo | number:'1.2-2' }}</p>
+          </ion-label>
+          <div slot="end" class="qty-controls" style="display: flex; align-items: center; gap: 5px;">
+            @if (getQuantita(prod.id) > 0) {
+              <ion-button size="default" fill="outline" color="medium" (click)="cart.rimuoviProdotto(prod.id)">
+                <ion-icon slot="icon-only" name="remove-outline"></ion-icon>
+              </ion-button>
+              <span style="font-weight: bold; font-size: 1.2rem; min-width: 25px; text-align: center;">{{ getQuantita(prod.id) }}</span>
+            }
+            <ion-button size="default" fill="solid" color="primary" (click)="cart.aggiungiProdotto(prod)">
+              <ion-icon slot="icon-only" name="add-outline"></ion-icon>
             </ion-button>
-            
-            <span style="font-weight: bold; font-size: 1.2rem; min-width: 25px; text-align: center;">
-              {{ getQuantita(prod.id) }}
-            </span>
-          }
+          </div>
+        </ion-item>
+      }
+    </ion-list>
+  }
 
-          <ion-button size="default" fill="solid" color="primary" (click)="cart.aggiungiProdotto(prod)">
-            <ion-icon slot="icon-only" name="add-outline"></ion-icon>
-          </ion-button>
-        </div>
-      </ion-item>
+  @if (vistaAttuale() === 'cronologia') {
+    <div style="text-align: center; margin-bottom: 15px;">
+      <ion-button fill="clear" (click)="caricaCronologia()">
+        <ion-icon name="refresh-outline" slot="start"></ion-icon>
+        Aggiorna Stato
+      </ion-button>
+    </div>
+
+    @if (cronologiaOrdini().length === 0) {
+      <div style="text-align: center; color: #888; margin-top: 50px;">
+        <h2>Nessun ordine recente 🥢</h2>
+        <p>Gli ordini dell'ultima ora appariranno qui.</p>
+      </div>
     }
-  </ion-list>
+
+    @for (ordine of cronologiaOrdini(); track ordine.id) {
+      <ion-card>
+        <ion-card-header>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <ion-card-subtitle>Di: {{ ordine.nome_cliente }}</ion-card-subtitle>
+            <small style="color: gray;">{{ ordine.data_creazione | date:'HH:mm' }}</small>
+          </div>
+          <ion-card-title>Ordine #{{ ordine.id }}</ion-card-title>
+        </ion-card-header>
+
+        <ion-card-content>
+          <ion-list lines="full">
+            <ion-item *ngFor="let piatto of ordine.prodotti">
+              <ion-label>
+                <b>{{ piatto.quantita }}x</b> {{ piatto.nome }}
+              </ion-label>
+              <ion-badge slot="end" [color]="piatto.stato === 'Consegnato' ? 'success' : (piatto.stato === 'In preparazione' ? 'warning' : 'medium')">
+                {{ piatto.stato || 'Inviato' }}
+              </ion-badge>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+
 </ion-content>
 
-<ion-footer *ngIf="cart.pezziTotali() > 0">
+<ion-footer *ngIf="cart.pezziTotali() > 0 && vistaAttuale() === 'menu'">
   <ion-toolbar color="success" (click)="setOpen(true)">
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 16px; cursor: pointer;">
       <div style="display: flex; align-items: center; gap: 10px;">
@@ -87,13 +116,13 @@
   </ion-toolbar>
 </ion-footer>
 
-<ion-modal [isOpen]="isModalOpen()" [initialBreakpoint]="0.5" [breakpoints]="[0, 0.5, 0.75]" (didDismiss)="setOpen(false)">
+<ion-modal [isOpen]="isModalOpen()" [initialBreakpoint]="0.6" [breakpoints]="[0, 0.6, 0.9]" (didDismiss)="setOpen(false)">
   <ng-template>
     <ion-header>
       <ion-toolbar>
         <ion-title>Riepilogo Ordine</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="setOpen(false)">Chiudi</ion-button>
+          <ion-button (click)="setOpen(false)"><ion-icon slot="icon-only" name="close-outline"></ion-icon></ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -105,7 +134,6 @@
             <h3>{{ item.nome }}</h3>
             <p>€ {{ item.prezzo }} x {{ item.quantita }}</p>
           </ion-label>
-          
           <div slot="end" style="display: flex; align-items: center;">
             <ion-button fill="clear" color="danger" (click)="cart.rimuoviProdotto(item.id)">
               <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
@@ -113,13 +141,9 @@
           </div>
         </ion-item>
       </ion-list>
-
       <div style="margin-top: 30px; text-align: center;">
-        <h1>Totale: € {{ cart.totale() | number:'1.2-2' }}</h1>
-        <br>
-        <ion-button expand="block" color="success" size="large" (click)="confermaOrdine()">
-          INVIA ORDINE
-        </ion-button>
+        <h1>Totale: € {{ cart.totale() | number:'1.2-2' }}</h1><br>
+        <ion-button expand="block" color="success" size="large" (click)="confermaOrdine()">INVIA ORDINE 🚀</ion-button>
       </div>
     </ion-content>
   </ng-template>

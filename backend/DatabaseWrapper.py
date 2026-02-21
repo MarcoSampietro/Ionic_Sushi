@@ -199,3 +199,40 @@ class DatabaseWrapper:
                 return cursor.fetchall()
         finally:
             connection.close()
+    def get_table_orders(self, codice_tavolo):
+        """Recupera ordini dell'ultima ora e lo stato di ogni piatto"""
+        connection = self.connect()
+        try:
+            with connection.cursor() as cursor:
+                # 1. Trova l'ID del tavolo
+                cursor.execute("SELECT id FROM tavoli WHERE codice_tavolo = %s", (codice_tavolo,))
+                tavolo = cursor.fetchone()
+                
+                if not tavolo:
+                    return [] 
+
+                # 2. Recupera gli ordini SOLO DELL'ULTIMA ORA (non ci interessa più lo stato globale qui)
+                sql_orders = """
+                SELECT id, nome_cliente, data_creazione 
+                FROM ordini 
+                WHERE id_tavolo = %s 
+                  AND data_creazione >= NOW() - INTERVAL 1 HOUR
+                ORDER BY data_creazione DESC
+                """
+                cursor.execute(sql_orders, (tavolo['id'],))
+                orders = cursor.fetchall()
+
+                # 3. Per ogni ordine, recupera i piatti e il LORO STATO
+                for order in orders:
+                    sql_items = """
+                    SELECT p.nome, d.quantita, d.stato 
+                    FROM dettaglio_ordini d
+                    JOIN prodotti p ON d.id_prodotto = p.id
+                    WHERE d.id_ordine = %s
+                    """
+                    cursor.execute(sql_items, (order['id'],))
+                    order['prodotti'] = cursor.fetchall()
+
+                return orders
+        finally:
+            connection.close()

@@ -3,10 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, ToastController, AlertController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { addOutline, removeOutline, chevronUpOutline, closeOutline, trashOutline, cartOutline } from 'ionicons/icons';
+import { 
+  addOutline, removeOutline, chevronUpOutline, closeOutline, 
+  trashOutline, cartOutline, refreshOutline 
+} from 'ionicons/icons';
 import { ApiService } from '../services/api';
 import { CartStore } from '../services/cart.store';
-import { Prodotto } from '../interfaces/models';
+import { Prodotto, OrdineTavolo } from '../interfaces/models';
 
 @Component({
   selector: 'app-home',
@@ -22,7 +25,6 @@ export class HomePage implements OnInit {
   private toastCtrl = inject(ToastController);
   private alertCtrl = inject(AlertController);
 
-  // Dati
   tavoli = signal<any[]>([]); 
   codiceTavolo = signal('');
   nomeCliente = signal('');
@@ -31,8 +33,9 @@ export class HomePage implements OnInit {
   categorie = computed(() => [...new Set(this.menu().map(p => p.categoria))]);
   categoriaSelezionata = signal<string>('');
   
-  // Gestione manuale del carrello
   isModalOpen = signal(false);
+  vistaAttuale = signal<'menu' | 'cronologia'>('menu'); 
+  cronologiaOrdini = signal<OrdineTavolo[]>([]); 
 
   prodottiFiltrati = computed(() => {
     const cat = this.categoriaSelezionata();
@@ -41,8 +44,7 @@ export class HomePage implements OnInit {
   });
 
   constructor() {
-    // REGISTRA LE ICONE QUI
-    addIcons({ addOutline, removeOutline, chevronUpOutline, closeOutline, trashOutline, cartOutline });
+    addIcons({ addOutline, removeOutline, chevronUpOutline, closeOutline, trashOutline, cartOutline, refreshOutline });
   }
 
   ngOnInit() {
@@ -50,34 +52,42 @@ export class HomePage implements OnInit {
   }
 
   caricaDati() {
+    this.api.getTables().subscribe(data => this.tavoli.set(data));
     this.api.getMenu().subscribe(data => {
       this.menu.set(data);
       if (data.length > 0) this.categoriaSelezionata.set(data[0].categoria);
     });
-
-    this.api.getTables().subscribe(data => {
-      this.tavoli.set(data);
-    });
   }
 
-  cambiaCategoria(e: any) {
-    this.categoriaSelezionata.set(e.detail.value);
-  }
+  cambiaCategoria(e: any) { this.categoriaSelezionata.set(e.detail.value); }
 
   getQuantita(id: number) {
     const item = this.cart.items().find(i => i.id === id);
     return item ? item.quantita : 0;
   }
 
-  // Metodo per aprire/chiudere il carrello
-  setOpen(isOpen: boolean) {
-    this.isModalOpen.set(isOpen);
+  setOpen(isOpen: boolean) { this.isModalOpen.set(isOpen); }
+
+  cambiaVista(e: any) {
+    const nuovaVista = e.detail.value;
+    this.vistaAttuale.set(nuovaVista);
+    if (nuovaVista === 'cronologia' && this.codiceTavolo()) {
+      this.caricaCronologia();
+    }
+  }
+
+  caricaCronologia() {
+    if (!this.codiceTavolo()) return;
+    this.api.getOrdiniTavolo(this.codiceTavolo()).subscribe({
+      next: (data) => this.cronologiaOrdini.set(data),
+      error: (err) => console.error('Errore cronologia', err)
+    });
   }
 
   async confermaOrdine() {
     if (!this.codiceTavolo() || !this.nomeCliente()) {
       const toast = await this.toastCtrl.create({
-        message: 'Manca il Tavolo o il Nome!',
+        message: 'Manca il Tavolo o il tuo Nome!',
         duration: 2000, color: 'danger', position: 'top'
       });
       toast.present();
@@ -92,21 +102,21 @@ export class HomePage implements OnInit {
 
     this.api.inviaOrdine(payload).subscribe({
       next: async () => {
-        this.setOpen(false); // Chiudi il modale
+        this.setOpen(false); 
+        this.cart.svuotaCarrello(); 
+        this.caricaCronologia();
+        this.vistaAttuale.set('cronologia'); 
         
         const alert = await this.alertCtrl.create({
           header: 'Ordine Inviato! 🍣',
-          message: 'La cucina ha ricevuto la tua comanda.',
+          message: 'La cucina ha ricevuto il tuo ordine.',
           buttons: ['OK']
         });
         await alert.present();
-        
-        this.cart.svuotaCarrello();
       },
       error: async () => {
         const toast = await this.toastCtrl.create({
-          message: 'Errore invio ordine.',
-          duration: 2000, color: 'danger'
+          message: 'Errore di invio.', duration: 3000, color: 'danger'
         });
         toast.present();
       }
